@@ -1208,19 +1208,21 @@ void Document::exportObjects(const std::vector<DocumentObject*>& obj, std::ostre
     DocumentExporting exporting(obj);
     d->hashers.clear();
 
-    if (FC_LOG_INSTANCE.isEnabled(FC_LOGLEVEL_LOG)) {
-        for (auto o : obj) {
-            if (o && o->isAttachedToDocument()) {
-                FC_LOG("exporting " << o->getFullName());
-                if (!o->getPropertyByName("_ObjectUUID")) {
-                    auto prop = static_cast<PropertyUUID*>(
-                        o->addDynamicProperty("App::PropertyUUID",
-                                              "_ObjectUUID",
-                                              nullptr,
-                                              nullptr,
-                                              Prop_Output | Prop_Hidden));
-                    prop->setValue(Base::Uuid::createUuid());
-                }
+    // Every exported object gets an _ObjectUUID, which importObjects() turns
+    // into the _SourceUUID of the copy. LinkBaseExtension::syncCopyOnChange()
+    // relies on it to match old and new copies, so this must not depend on the
+    // log level.
+    for (auto o : obj) {
+        if (o && o->isAttachedToDocument()) {
+            FC_LOG("exporting " << o->getFullName());
+            if (!o->getPropertyByName("_ObjectUUID")) {
+                auto prop = static_cast<PropertyUUID*>(
+                    o->addDynamicProperty("App::PropertyUUID",
+                                          "_ObjectUUID",
+                                          nullptr,
+                                          nullptr,
+                                          Prop_Output | Prop_Hidden));
+                prop->setValue(Base::Uuid::createUuid());
             }
         }
     }

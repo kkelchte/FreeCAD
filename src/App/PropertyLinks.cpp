@@ -625,7 +625,13 @@ PropertyLinkBase::tryReplaceLink(const PropertyContainer* owner,
                     sub.replace(prevPos, pos - 1 - prevPos, newObj->getNameInDocument());
                 }
                 res.first = obj;
-                res.second = std::move(sub);
+                // The path now goes through a different object, whose
+                // elements have their own mapped (topological) names. A
+                // mapped name taken from the old object cannot be found
+                // there and would leave the reference marked as missing, so
+                // keep only the indexed name (e.g. Edge12). The mapped name
+                // is looked up again when the new reference is set.
+                res.second = Data::oldElementName(sub.c_str());
                 return res;
             }
             break;
@@ -4388,6 +4394,11 @@ Property* PropertyXLink::CopyOnLinkReplace(const App::DocumentObject* parent,
     }
     std::unique_ptr<PropertyXLink> p(new PropertyXLink);
     copyTo(*p, res.first, &res.second);
+    // Keep the linked object in the (detached) copy, so that getValue() works
+    // on it and a further CopyOnLinkReplace() can be applied on top of it, as
+    // LinkBaseExtension::syncCopyOnChange() does for multi level subnames.
+    // The copy has no container, so no back link is registered or removed.
+    p->_pcLink = res.first;
     return p.release();
 }
 

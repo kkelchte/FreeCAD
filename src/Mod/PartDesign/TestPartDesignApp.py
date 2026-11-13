@@ -66,3 +66,4 @@ from PartDesignTests.TestSuppressed import TestSuppressed
 
 # Topological naming problem
 from PartDesignTests.TestTopologicalNamingProblem import TestTopologicalNamingProblem
+from PartDesignTests.TestCopyOnChangeLinks import TestCopyOnChangeLinks

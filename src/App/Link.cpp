@@ -699,12 +699,36 @@ void LinkBaseExtension::syncCopyOnChange()
                     if (!linkProp) {
                         continue;
                     }
-                    for (const auto& v : replacements) {
-                        std::unique_ptr<App::Property> copy(
-                            linkProp->CopyOnLinkReplace(parent, v.first, v.second));
-                        if (!copy) {
-                            continue;
+                    // Apply all replacements to the same property, each one
+                    // on top of the result of the previous, so that a subname
+                    // path crossing several replaced objects (e.g.
+                    // Body001.Pocket001.Edge1) is rewritten at every level.
+                    // The replacements are walked from the deepest object to
+                    // the top most, so that the not yet replaced part of the
+                    // path still resolves through the old copies.
+                    std::unique_ptr<App::Property> copy;
+                    for (auto it = replacements.rbegin(); it != replacements.rend(); ++it) {
+                        // The replaced object is referenced either directly
+                        // below the link (parent), or below one of the old
+                        // copies that contains it.
+                        std::vector<App::DocumentObject*> owners {parent};
+                        for (auto in : it->first->getInList()) {
+                            if (std::binary_search(objs.begin(), objs.end(), in)) {
+                                owners.push_back(in);
+                            }
                         }
+                        for (auto owner : owners) {
+                            auto current = copy
+                                ? static_cast<App::PropertyLinkBase*>(copy.get())
+                                : linkProp;
+                            std::unique_ptr<App::Property> replaced(
+                                current->CopyOnLinkReplace(owner, it->first, it->second));
+                            if (replaced) {
+                                copy = std::move(replaced);
+                            }
+                        }
+                    }
+                    if (copy) {
                         propChanges.emplace_back(App::DocumentObjectT(prop), std::move(copy));
                     }
                 }

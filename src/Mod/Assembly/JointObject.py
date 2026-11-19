@@ -880,7 +880,9 @@ class Joint:
     def redrawJointPlacements(self, joint):
         if joint.ViewObject:
             proxy = joint.ViewObject.Proxy
-            if proxy:
+            # In a partially loaded document the view provider is not restored and
+            # Proxy is a placeholder (an int), not a ViewProviderJoint.
+            if hasattr(proxy, "redrawJointPlacements"):
                 proxy.redrawJointPlacements(joint)
 
     """
@@ -986,8 +988,7 @@ class Joint:
                     part.Placement = plc
             self.partsMovedByPresolved = {}
 
-            if joint.ViewObject:
-                joint.ViewObject.Proxy.redrawJointPlacements(joint)
+            self.redrawJointPlacements(joint)
 
     def preventParallel(self, joint):
         # Angle and perpendicular joints in the solver cannot handle the situation where both JCS are Parallel
